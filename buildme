@@ -1,0 +1,86 @@
+#!/bin/bash
+
+# this one doesn't work for some reason
+#. /usr/local/tools/dotkit/init
+#use cudatoolkit-5.0
+
+#. /usr/share/Modules/init/sh
+#module load cudatoolkit/5.0
+
+set -x
+
+PREFIX=`pwd`/install
+
+pushd autotools
+  ./buildme
+popd
+
+# add autotools install bin to our path
+export PATH=`pwd`/autotools/install/bin:$PATH
+echo $PATH
+
+rm -rf install
+
+# unzip mvapich source
+rm -rf mvapich2-1.9
+tar -zxf mvapich2-1.9.tgz
+
+# apply patches
+patch -p0 < 0001-specify-path-to-pmgr-pmi.patch
+patch -p0 < 0001-drop-network-libs-from-wrapper.patch
+patch -p0 < 0001-do-not-read-user-config-if-home-is-not-set.patch
+exit 0
+
+# build MPI
+cd mvapich2-1.9
+
+# needed for make dist step
+#export YACC="/usr/bin/bison"
+
+#export CC=gcc 
+#export CXX=g++ 
+#export F77=gfortran
+#export FC=gfortran
+export CC=icc 
+export CXX=icpc
+export F77=ifort
+export FC=ifort
+
+#export MPICHLIB_CFLAGS="-g -O3"
+#export MPICHLIB_CXXFLAGS="-g -O3"
+#export MPICHLIB_FFLAGS="-g -O3 -fno-second-underscore"
+#export MPICHLIB_FCFLAGS="-g -O3 -fno-second-underscore"
+export MPICHLIB_CFLAGS="-g -O0"
+export MPICHLIB_CXXFLAGS="-g -O0"
+export MPICHLIB_FFLAGS="-g -O0"
+export MPICHLIB_FCFLAGS="-g -O0"
+
+export CONFIG_FLAGS="--enable-fast=all --enable-g=dbg --enable-nmpi-as-mpi"
+
+export PMI="--with-pm=no --with-pmi=pmgr --with-pmgr=/usr/local/tools/pmgr"
+
+export DEVICE_FLAGS="--with-device=ch3:psm"
+#export DEVICE_FLAGS="--with-device=ch3:mrail --with-rdma=gen2"
+
+#make distclean
+
+# we have to do this to rebuild configure to include pmgr
+./autogen.sh
+
+./configure \
+  --prefix=${PREFIX} \
+  --enable-f77 --enable-fc --enable-cxx \
+  ${CONFIG_FLAGS} \
+  --enable-shared --enable-sharedlibs=gcc \
+  --enable-debuginfo \
+  ${PMI} \
+  ${DEVICE_FLAGS} \
+  ${REG_CACHE} \
+  --enable-romio --with-file-system=lustre+nfs+ufs \
+  --disable-mpe --without-mpe
+
+make clean
+
+make -j8 VERBOSE=1
+
+make install VERBOSE=1

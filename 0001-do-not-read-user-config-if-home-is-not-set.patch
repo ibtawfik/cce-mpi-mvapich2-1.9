@@ -1,0 +1,53 @@
+From 7eea6915053cc33bc01937a01bbd1348646e31cb Mon Sep 17 00:00:00 2001
+From: Adam Moody <moody20@llnl.gov>
+Date: Wed, 24 Jul 2013 14:15:35 -0700
+Subject: [PATCH] do not read user config if home is not set
+
+---
+ .../mpid/ch3/channels/common/src/util/mv2_config.c | 28 ++++++++++++----------
+ 1 file changed, 16 insertions(+), 12 deletions(-)
+
+diff --git a/mvapich2-1.9/src/mpid/ch3/channels/common/src/util/mv2_config.c b/mvapich2-1.9/src/mpid/ch3/channels/common/src/util/mv2_config.c
+index 27935a4..6280f0c 100644
+--- a/mvapich2-1.9/src/mpid/ch3/channels/common/src/util/mv2_config.c
++++ b/mvapich2-1.9/src/mpid/ch3/channels/common/src/util/mv2_config.c
+@@ -209,20 +209,24 @@ int read_user_config (unsigned long * crc)
+     }
+ 
+     /*
+-     * Initialize error information in case of error processing file
++     * Only read file if user_config is set.
+      */
+-    strcpy(config_error.filename, user_config);
+-    config_error.lineno = 0;
+-
+-    /*
+-     * Open and process configuration file
+-     */
+-    if ((config_file = fopen(user_config, "r"))) {
+-        return read_config(config_file, crc);
+-    } else if (report_fopen_error) {
+-        config_error.msg = strerror(errno);
++    if (user_config != NULL) {
++        /*
++         * Initialize error information in case of error processing file
++         */
++        strcpy(config_error.filename, user_config);
++        config_error.lineno = 0;
+ 
+-        return -1;
++        /*
++         * Open and process configuration file
++         */
++        if ((config_file = fopen(user_config, "r"))) {
++            return read_config(config_file, crc);
++        } else if (report_fopen_error) {
++            config_error.msg = strerror(errno);
++            return -1;
++        }
+     }
+ 
+     return 0;
+-- 
+1.8.1.1
+

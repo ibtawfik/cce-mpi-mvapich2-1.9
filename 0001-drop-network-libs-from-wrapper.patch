@@ -1,0 +1,41 @@
+From 51ead1cd25c91f295d6049f69927ea6eedd794f9 Mon Sep 17 00:00:00 2001
+From: Adam Moody <moody20@llnl.gov>
+Date: Wed, 24 Jul 2013 14:02:50 -0700
+Subject: [PATCH] drop network libs from wrapper
+
+---
+ mvapich2-1.9/configure.ac | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/mvapich2-1.9/configure.ac b/mvapich2-1.9/configure.ac
+index 2af814a..2611492 100644
+--- a/mvapich2-1.9/configure.ac
++++ b/mvapich2-1.9/configure.ac
+@@ -6181,9 +6181,22 @@ AC_OUTPUT_COMMANDS([chmod a+x test/commands/cmdtests])
+ 
+ AC_DEFINE(HAVE_MPICHCONF,1,[Define so that we can test whether the mpichconf.h file has been included])
+ 
++# ATM: The LDFLAGS and LIBS contain libs needed to build MPI, but not
++# user apps.  When linking to the MPI shared object, listing
++# these libs in the wrapper encodes dependencies to these libs in the
++# user app, making the app less portable across machines.  So long as
++# the MPI shared object encodes dependencies to its libs, the app does
++# not have to.  The app can just encode a dependency on MPI.  With
++# this approach, an app will load MPI, and MPI will load the other
++# libs.  This way, the same app can execute on different machines
++# even if the underlying network libs on different across machines.
++#
++# For static builds, you do have to link MPI's dependent libs into
++# the user app, so uncomment these lines.
++
+ # Add the LDFLAGS/LIBS we got so far to WRAPPERs
+-WRAPPER_LDFLAGS="$WRAPPER_LDFLAGS $LDFLAGS"
+-WRAPPER_LIBS="$WRAPPER_LIBS $LIBS"
++#WRAPPER_LDFLAGS="$WRAPPER_LDFLAGS $LDFLAGS"
++#WRAPPER_LIBS="$WRAPPER_LIBS $LIBS"
+ 
+ if test "$USE_PMI2_API" = "yes" ; then
+    AC_DEFINE(USE_PMI2_API, 1, [Define if PMI2 API must be used])
+-- 
+1.8.1.1
+

@@ -1,0 +1,93 @@
+From 18d1c89f34896096168e34bdefd338dc4432fb90 Mon Sep 17 00:00:00 2001
+From: Adam Moody <moody20@llnl.gov>
+Date: Wed, 24 Jul 2013 14:01:23 -0700
+Subject: [PATCH] specify path to pmgr pmi
+
+---
+ mvapich2-1.9/src/pmi/pmgr/subconfigure.m4 | 74 +++++++++++++++++++++++++++++++
+ 1 file changed, 74 insertions(+)
+ create mode 100644 mvapich2-1.9/src/pmi/pmgr/subconfigure.m4
+
+diff --git a/mvapich2-1.9/src/pmi/pmgr/subconfigure.m4 b/mvapich2-1.9/src/pmi/pmgr/subconfigure.m4
+new file mode 100644
+index 0000000..cb4536a
+--- /dev/null
++++ b/mvapich2-1.9/src/pmi/pmgr/subconfigure.m4
+@@ -0,0 +1,74 @@
++[#] start of __file__
++
++AC_DEFUN([PAC_SUBCFG_PREREQ_]PAC_SUBCFG_AUTO_SUFFIX,[
++])
++
++AC_DEFUN([PAC_SUBCFG_BODY_]PAC_SUBCFG_AUTO_SUFFIX,[
++
++AM_CONDITIONAL([BUILD_PMI_PMGR],[test "x$pmi_name" = "xpmgr"])
++AM_COND_IF([BUILD_PMI_PMGR],[
++
++# read directory for pmgr_collective path from --with-pmgr=<dir> option
++AC_ARG_WITH(
++  pmgr,
++  AS_HELP_STRING([--with-pmgr], [path to the pmgr_collective package]),
++  [_x_ac_pmgr_with="$withval"
++    with_pmgr=yes],
++  [_x_ac_pmgr_with=no
++    with_pmgr=no]
++)
++
++# --with-pmgr was specified, check for header and library files
++if test "x$_x_ac_gcs_with" != xno ; then
++  # check that we can find the header file and link to the library
++  AC_CACHE_CHECK(
++    [for pmgr_collective installation],
++    [x_ac_cv_pmgr_dir],
++    [
++      for d in $_x_ac_pmgr_with; do
++        test -d "$d" || continue
++        test -d "$d/include" || continue
++        test -f "$d/include/pmi.h" || continue
++        test -d "$d/lib" || continue
++
++        _x_ac_pmgr_libs_save="$LIBS"
++        LIBS="-Wl,-rpath,-L${d}/lib -L${d}/lib -lpmi $LIBS"
++        AC_LINK_IFELSE(
++          AC_LANG_CALL([], [PMI_Init]),
++          AS_VAR_SET([x_ac_cv_pmgr_dir], [$d])
++        )
++        LIBS=$_x_ac_pmgr_libs_save
++
++        test -n "$x_ac_cv_pmgr_dir" && break
++      done
++    ]
++  )
++
++  # add flags to MPI wrappers to link to pmi2pmgr library
++  if test -n "$x_ac_cv_pmgr_dir"; then
++    PAC_PREPEND_FLAG([-L${x_ac_cv_pmgr_dir}/include], [CFLAGS])
++    PAC_PREPEND_FLAG([-L${x_ac_cv_pmgr_dir}/include], [WRAPPER_CFLAGS])
++    PAC_PREPEND_FLAG([-L${x_ac_cv_pmgr_dir}/lib], [LDFLAGS])
++    PAC_PREPEND_FLAG([-Wl,-rpath,${x_ac_cv_pmgr_dir}/lib], [LDFLAGS])
++    PAC_PREPEND_FLAG([-lpmi], [LIBS])
++    PAC_PREPEND_FLAG([-L${x_ac_cv_pmgr_dir}/lib], [WRAPPER_LDFLAGS])
++    PAC_PREPEND_FLAG([-Wl,-rpath,${x_ac_cv_pmgr_dir}/lib], [WRAPPER_LDFLAGS])
++    PAC_PREPEND_FLAG([-lpmi], [WRAPPER_LIBS])
++    echo "FOUND PMGR_COLLECTIVE PMI: $WRAPPER_LDFLAGS $WRAPPER_LIBS"
++  else
++    AC_MSG_ERROR([PMGR_COLLECTIVE PMI NOT FOUND.  CONFIGURE ABORTED])
++  fi
++fi
++
++AC_SUBST(CFLAGS)
++AC_SUBST(LDFLAGS)
++AC_SUBST(LIBS)
++AC_SUBST(WRAPPER_CFLAGS)
++AC_SUBST(WRAPPER_LDFLAGS)
++AC_SUBST(WRAPPER_LIBS)
++
++])dnl end COND_IF
++
++])dnl end BODY macro
++
++[#] end of __file__
+-- 
+1.8.1.1
+
