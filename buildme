@@ -9,7 +9,7 @@
 
 set -x
 
-PREFIX=`pwd`/install
+PREFIX=`pwd`/mvapich2-1.9/install
 
 pushd autotools
   ./buildme
@@ -19,17 +19,14 @@ popd
 export PATH=`pwd`/autotools/install/bin:$PATH
 echo $PATH
 
-rm -rf install
-
 # unzip mvapich source
 rm -rf mvapich2-1.9
 tar -zxf mvapich2-1.9.tgz
 
 # apply patches
-patch -p0 < 0001-specify-path-to-pmgr-pmi.patch
-patch -p0 < 0001-drop-network-libs-from-wrapper.patch
-patch -p0 < 0001-do-not-read-user-config-if-home-is-not-set.patch
-exit 0
+patch -p1 < 0001-specify-path-to-pmgr-pmi.patch
+patch -p1 < 0001-drop-network-libs-from-wrapper.patch
+patch -p1 < 0001-do-not-read-user-config-if-home-is-not-set.patch
 
 # build MPI
 cd mvapich2-1.9
